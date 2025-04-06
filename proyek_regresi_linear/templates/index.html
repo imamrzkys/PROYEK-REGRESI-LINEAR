@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Penjualan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --pastel-pink: #FFD1DC;
+            --pastel-pink-dark: #FFB6C1;
+            --tosca: #40E0D0;
+            --tosca-dark: #20B2AA;
+            --bg-color: #F0F8FF;
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            background: white;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--tosca) 0%, var(--tosca-dark) 100%) !important;
+            border-radius: 20px 20px 0 0 !important;
+            padding: 2rem;
+            border: none;
+        }
+        
+        .card-header h2 {
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        
+        .card-body {
+            padding: 2rem;
+        }
+        
+        .btn-primary {
+            background-color: var(--tosca);
+            border-color: var(--tosca);
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--tosca-dark);
+            border-color: var(--tosca-dark);
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background-color: var(--pastel-pink);
+            border-color: var(--pastel-pink);
+            color: #333;
+            padding: 0.8rem 2rem;
+            border-radius: 10px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-success:hover {
+            background-color: var(--pastel-pink-dark);
+            border-color: var(--pastel-pink-dark);
+            color: #333;
+            transform: translateY(-2px);
+        }
+        
+        .alert-success {
+            background-color: #E0FFF9;
+            border-color: var(--tosca);
+            color: #333;
+            border-radius: 10px;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            padding: 0.8rem 1rem;
+            border: 2px solid #eee;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--tosca);
+            box-shadow: 0 0 0 0.25rem rgba(64, 224, 208, 0.25);
+        }
+        
+        .section-title {
+            color: var(--tosca-dark);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--pastel-pink);
+            display: inline-block;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            min-height: 600px;
+            width: 100%;
+            margin: 2rem 0;
+        }
+        
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .card-body {
+                padding: 1.5rem;
+            }
+            
+            h2 {
+                font-size: 1.5rem;
+            }
+            
+            .btn {
+                width: 100%;
+                margin-bottom: 0.5rem;
+            }
+        }
+        
+        .display-6 {
+            color: var(--tosca-dark);
+            font-weight: 600;
+        }
+        
+        .form-label {
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .text-muted {
+            color: #888 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row justify-content-center">
+            <div class="col-12 col-lg-10">
+                <div class="card shadow">
+                    <div class="card-header">
+                        <h2 class="text-center text-white mb-0">Prediksi Penjualan Berdasarkan Pengeluaran Iklan</h2>
+                    </div>
+                    <div class="card-body p-4">
+                        <!-- Flash Messages -->
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{{ category }} mb-4">{{ message }}</div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+
+                        <!-- Form Input Manual -->
+                        <div class="mb-5">
+                            <h4 class="section-title">Input Manual</h4>
+                            <form method="POST" class="mb-3">
+                                <div class="mb-4">
+                                    <label for="budget" class="form-label">Masukkan Pengeluaran Iklan (Juta Rupiah):</label>
+                                    <input type="number" class="form-control form-control-lg" name="budget" step="0.1" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-lg">Prediksi</button>
+                            </form>
+                        </div>
+
+                        <!-- Form Upload CSV -->
+                        <div class="mb-5">
+                            <h4 class="section-title">Upload Dataset CSV</h4>
+                            <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_csv') }}" class="mb-3">
+                                <div class="mb-4">
+                                    <label for="file" class="form-label">Pilih file CSV:</label>
+                                    <input type="file" class="form-control form-control-lg" id="file" name="file" accept=".csv" required>
+                                    <small class="text-muted d-block mt-2">Format: Kolom 1 = Pengeluaran Iklan, Kolom 2 = Penjualan</small>
+                                </div>
+                                <button type="submit" class="btn btn-success btn-lg">Upload & Analisis</button>
+                            </form>
+                        </div>
+
+                        <!-- Hasil Prediksi -->
+                        {% if prediction is not none %}
+                        <div class="alert alert-success p-4 mb-5">
+                            <h4 class="alert-heading mb-3">Hasil Prediksi:</h4>
+                            <p class="display-6 mb-0">{{ "%.2f"|format(prediction) }} Unit</p>
+                        </div>
+                        {% endif %}
+
+                        <!-- Grafik -->
+                        {% if show_plot and scatter_data and regression_line %}
+                        <div class="mt-5">
+                            <h4 class="section-title">Visualisasi Data</h4>
+                            <div class="chart-container">
+                                <canvas id="regressionPlot" style="height: 600px;"></canvas>
+                            </div>
+                        </div>
+                        <script>
+                            var ctx = document.getElementById('regressionPlot').getContext('2d');
+                            var chart = new Chart(ctx, {
+                                type: 'scatter',
+                                data: {
+                                    datasets: [{
+                                        label: 'Data Aktual',
+                                        data: {{ scatter_data | safe }},
+                                        backgroundColor: '#FFB6C1',
+                                        pointRadius: 8,
+                                        pointHoverRadius: 10
+                                    },
+                                    {
+                                        label: 'Garis Regresi',
+                                        data: {{ regression_line | safe }},
+                                        type: 'line',
+                                        borderColor: '#40E0D0',
+                                        borderWidth: 3,
+                                        fill: false
+                                    }]
+                                },
+                                options: {
+                                    responsive: true,
+                                    maintainAspectRatio: false,
+                                    plugins: {
+                                        title: {
+                                            display: true,
+                                            text: 'Regresi Linear: Pengeluaran Iklan vs Penjualan',
+                                            font: {
+                                                size: 20,
+                                                weight: '600'
+                                            },
+                                            padding: 20,
+                                            color: '#333'
+                                        },
+                                        legend: {
+                                            position: 'bottom',
+                                            labels: {
+                                                font: {
+                                                    size: 14
+                                                },
+                                                padding: 20
+                                            }
+                                        }
+                                    },
+                                    scales: {
+                                        x: {
+                                            title: {
+                                                display: true,
+                                                text: 'Pengeluaran Iklan (Juta Rupiah)',
+                                                font: {
+                                                    size: 16,
+                                                    weight: '500'
+                                                },
+                                                padding: 15,
+                                                color: '#555'
+                                            },
+                                            grid: {
+                                                color: '#f0f0f0'
+                                            },
+                                            ticks: {
+                                                font: {
+                                                    size: 14
+                                                }
+                                            }
+                                        },
+                                        y: {
+                                            title: {
+                                                display: true,
+                                                text: 'Penjualan (Unit)',
+                                                font: {
+                                                    size: 16,
+                                                    weight: '500'
+                                                },
+                                                padding: 15,
+                                                color: '#555'
+                                            },
+                                            grid: {
+                                                color: '#f0f0f0'
+                                            },
+                                            ticks: {
+                                                font: {
+                                                    size: 14
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            });
+                        </script>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
